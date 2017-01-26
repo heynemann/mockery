@@ -53,6 +53,22 @@ var tests = {
                     }
                 }
             }
+        },
+        "and mockery is enabled with the clean cache option and registerAllowable is used with a func": {
+            topic: function () {
+                mockery.registerMock('./fake_module', mock_fake_module);
+                mockery.registerAllowable(function(request) {
+                    return request === './fixtures/intermediary';
+                });
+                mockery.enable({ useCleanCache: true });
+                var i = require('./fixtures/intermediary');
+                mockery.resetCache();
+                mockery.disable();
+                return i;
+            },
+            "requiring the intermediary causes the mock to be used": function (intermediary) {
+                assert.equal(intermediary.bar(), 'mocked foo');
+            },
         }
     }
 };

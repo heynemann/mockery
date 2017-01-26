@@ -37,6 +37,7 @@
 var m = require('module'),
     registeredMocks = {},
     registeredSubstitutes = {},
+    allowablesFunc = null,
     registeredAllowables = {},
     originalLoader = null,
     originalCache = null,
@@ -103,8 +104,12 @@ function hookedLoader(request, parent, isMain) {
             }
         }
     } else {
-        if (options.warnOnUnregistered) {
-            console.warn("WARNING: loading non-allowed module: " + request);
+        if (allowablesFunc !== null && allowablesFunc(request)) {
+            return originalLoader(request, parent, isMain);
+        } else {
+            if (options.warnOnUnregistered) {
+                console.warn("WARNING: loading non-allowed module: " + request);
+            }
         }
     }
 
@@ -161,6 +166,7 @@ function disable() {
         originalCache = null;
     }
 
+    allowablesFunc = null;
     m._load = originalLoader;
     originalLoader = null;
 }
@@ -172,6 +178,7 @@ function disable() {
  */
 function resetCache() {
     if (options.useCleanCache && originalCache) {
+        allowablesFunc = null;
         removeParentReferences();
         m._cache = {};
         repopulateNative();
@@ -267,10 +274,14 @@ function deregisterSubstitute(mod) {
  * it is deregistered.
  */
 function registerAllowable(mod, unhook) {
-    registeredAllowables[mod] = {
-        unhook: !!unhook,
-        paths: []
-    };
+    if (typeof(mod) == 'function') {
+        allowablesFunc = mod;
+    } else {
+      registeredAllowables[mod] = {
+          unhook: !!unhook,
+          paths: []
+      };
+    }
 }
 
 /*
